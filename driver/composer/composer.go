@@ -1,18 +1,16 @@
 package composer
 
 import (
+	"time"
+
 	"github.com/republicprotocol/swapperd/adapter/binder"
 	"github.com/republicprotocol/swapperd/adapter/callback"
 	"github.com/republicprotocol/swapperd/adapter/db"
 	"github.com/republicprotocol/swapperd/adapter/server"
-	"github.com/republicprotocol/swapperd/core/swapper"
-	"github.com/republicprotocol/swapperd/core/swapper/delayed"
-	"github.com/republicprotocol/swapperd/core/swapper/immediate"
-	"github.com/republicprotocol/swapperd/core/swapper/status"
-	"github.com/republicprotocol/swapperd/core/transfer"
 	"github.com/republicprotocol/swapperd/driver/keystore"
 	"github.com/republicprotocol/swapperd/driver/leveldb"
 	"github.com/republicprotocol/swapperd/driver/logger"
+	"github.com/republicprotocol/tau"
 )
 
 const BufferCapacity = 128
@@ -45,13 +43,27 @@ func (composer *composer) Run(done <-chan struct{}) {
 	storage := db.New(ldb)
 	logger := logger.NewStdOut()
 
-	delayedSwapperTask := delayed.New(BufferCapacity, callback.New())
-	immediateSwapperTask := immediate.New(BufferCapacity, binder.NewBuilder(blockchain, logger))
-	swapStatusTask := status.New(BufferCapacity)
+	serverIO := tau.NewIO(BufferCapacity)
+	go sendTicks(serverIO, done)
+	go server.New(
+		BufferCapacity,
+		serverIO,
+		storage,
+		binder.NewBuilder(blockchain, logger),
+		callback.New(),
+		blockchain,
+		logger,
+	).Run(done)
+}
 
-	swapperTask := swapper.New(BufferCapacity, storage, delayedSwapperTask, immediateSwapperTask, swapStatusTask)
-	walletTask := transfer.New(BufferCapacity, blockchain, storage)
-
-	httpServer := server.NewHttpServer(blockchain, logger, swapperTask, walletTask, composer.port)
-	httpServer.Run(done)
+func sendTicks(io tau.IO, done <-chan struct{}) {
+	ticker := time.NewTicker(30 * time.Second)
+	for {
+		select {
+		case <-done:
+			return
+		case <-ticker.C:
+			io.InputWriter() <- tau.NewTick(time.Now())
+		}
+	}
 }
