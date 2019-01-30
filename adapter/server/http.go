@@ -196,7 +196,7 @@ func (server *httpServer) postSwapsHandler(reqHandler Handler) http.HandlerFunc 
 			return
 		}
 
-		swapReq := PostSwapRequest{}
+		swapReq := PostSwapsRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&swapReq); err != nil {
 			server.writeError(w, r, http.StatusBadRequest, fmt.Sprintf("cannot decode swap request: %v", err))
 			return
@@ -225,7 +225,7 @@ func (server *httpServer) postSwapsHandler(reqHandler Handler) http.HandlerFunc 
 		}
 
 		if patchedSwap.Signature == "" {
-			respBytes, err := json.MarshalIndent(PostRedeemSwapResponse{patchedSwap.ID}, "\t", "")
+			respBytes, err := json.MarshalIndent(MarshalResponderPostSwapsResponse(patchedSwap.ID), "\t", "")
 			if err != nil {
 				server.writeError(w, r, http.StatusInternalServerError, fmt.Sprintf("cannot encode swap response: %v", err))
 				return

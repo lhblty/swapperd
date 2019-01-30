@@ -49,8 +49,8 @@ type Handler interface {
 	GetBase64Signature(password string, message string) (GetSignatureResponseString, error)
 	GetHexSignature(password string, message string) (GetSignatureResponseString, error)
 	PostTransfers(PostTransfersRequest) (PostTransfersResponse, error)
-	PostSwaps(PostSwapRequest) (PostSwapResponse, error)
-	PostDelayedSwaps(PostSwapRequest) error
+	PostSwaps(PostSwapsRequest) (PostSwapsResponse, error)
+	PostDelayedSwaps(PostSwapsRequest) error
 
 	Receive() (tau.Message, error)
 	Write(msg tau.Message)
@@ -157,19 +157,19 @@ func (handler *handler) GetTransfers(password string) (GetTransfersResponse, err
 	return MarshalGetTransfersResponse(receiptMap), nil
 }
 
-func (handler *handler) PostSwaps(swapReq PostSwapRequest) (PostSwapResponse, error) {
+func (handler *handler) PostSwaps(swapReq PostSwapsRequest) (PostSwapsResponse, error) {
 	handler.bootload(swapReq.Password)
 
 	blob, err := handler.patchSwap(swap.SwapBlob(swapReq))
 	if err != nil {
-		return PostSwapResponse{}, err
+		return PostSwapsResponse{}, err
 	}
 
 	handler.Write(coreWallet.NewSwapperRequest(swapper.SwapRequest(blob)))
 	return handler.buildSwapResponse(blob)
 }
 
-func (handler *handler) PostDelayedSwaps(swapReq PostSwapRequest) error {
+func (handler *handler) PostDelayedSwaps(swapReq PostSwapsRequest) error {
 	handler.bootload(swapReq.Password)
 
 	blob, err := handler.patchDelayedSwap(swap.SwapBlob(swapReq))
@@ -423,13 +423,13 @@ func (handler *handler) signDelayInfo(blob swap.SwapBlob) (swap.SwapBlob, error)
 	return blob, nil
 }
 
-func (handler *handler) buildSwapResponse(blob swap.SwapBlob) (PostSwapResponse, error) {
+func (handler *handler) buildSwapResponse(blob swap.SwapBlob) (PostSwapsResponse, error) {
 	responseBlob := swap.SwapBlob{}
 	responseBlob.SendToken = blob.ReceiveToken
 	responseBlob.ReceiveToken = blob.SendToken
 	responseBlob.SendAmount = blob.ReceiveAmount
 	responseBlob.ReceiveAmount = blob.SendAmount
-	swapResponse := PostSwapResponse{}
+	swapResponse := PostSwapsResponse{}
 
 	sendToken, err := blockchain.PatchToken(string(responseBlob.SendToken))
 	if err != nil {
