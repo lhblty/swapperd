@@ -116,7 +116,7 @@ func buildReceipt(req TransferRequest, from, txHash string) TransferReceipt {
 		Confirmations: 0,
 		Timestamp:     time.Now().Unix(),
 		PasswordHash:  base64.StdEncoding.EncodeToString(passwordHash),
-		TokenDetails: TokenDetails{
+		TransactionDetails: TransactionDetails{
 			To:     req.To,
 			From:   from,
 			Token:  req.Token,
@@ -153,10 +153,10 @@ type TransferReceipt struct {
 	Confirmations int64  `json:"confirmations"`
 	Timestamp     int64  `json:"timestamp"`
 	PasswordHash  string `json:"passwordHash,omitempty"`
-	TokenDetails
+	TransactionDetails
 }
 
-type TokenDetails struct {
+type TransactionDetails struct {
 	To     string              `json:"to"`
 	From   string              `json:"from"`
 	Token  blockchain.Token    `json:"token"`
